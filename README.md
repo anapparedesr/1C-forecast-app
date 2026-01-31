@@ -5,6 +5,7 @@ El objetivo principal del repositorio fue refactorizar un notebook que iba desde
 
 
 ## Estructura del repositorio 
+```text
 ModeloML-predsales/
 ├── data/
 │   ├── raw/                # Datos originales
@@ -26,6 +27,7 @@ ModeloML-predsales/
 │
 ├── .gitignore
 └── README.md
+```
 
 ## Datos originales 
 
