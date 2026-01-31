@@ -55,7 +55,8 @@ Dentro del link se necesitan las siguientes bases de datos:
 * Agregación mensual de vental
 * Construcción del grid completo (tienda-item-mes)
 * Creación de variables de rezago (`lag_1`, `lag_3`, `lag_6`, `lag_12`)
-
+  
+---
 ### prep_inference.py
 
 Se recomienda utilizar este script si los datos para predecir no tienen las mismas columnas que la base: grid_model.csv 
@@ -68,8 +69,9 @@ Se recomienda utilizar este script si los datos para predecir no tienen las mism
 
 **Funcionalidad**
 * Crea rezagos a los datos para la predicción 
-* Prepara los datos para la inferencia 
-
+* Prepara los datos para la inferencia
+   
+---
 ### train.py
 
 **Entrada**
@@ -83,6 +85,7 @@ Se recomienda utilizar este script si los datos para predecir no tienen las mism
 * Entrenamiento de un RandomForestRegressor
 * Evaluación con RMSE
 * Persistencia del modelo entrenado 
+ ---
  
 ### inference.py
 
