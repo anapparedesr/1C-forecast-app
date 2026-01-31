@@ -110,6 +110,8 @@ uv run python src/inference.py
 
 Si se sigue correctamente los scripts y con los datos indicados, se obtendrá la siguiente organización
 ## Estructura del repositorio al correr los scripts y descargarlos datos 
+
+```text
 ModeloML-predsales/
 ├── data/
 │   ├── raw/                # Datos originales
@@ -137,5 +139,5 @@ ModeloML-predsales/
 │
 ├── .gitignore
 └── README.md
-
+```
 
