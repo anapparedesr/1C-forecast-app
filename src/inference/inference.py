@@ -18,7 +18,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from src.utils.logger import setup_logger
+from utils.logger import setup_logger
 
 
 # -----
