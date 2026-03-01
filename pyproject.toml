@@ -1,0 +1,18 @@
+[project]
+name = "modeloml-predsales"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "jupyterlab>=4.5.5",
+    "numpy>=2.4.2",
+    "pandas>=3.0.1",
+    "scikit-learn>=1.8.0",
+]
+
+[dependency-groups]
+dev = [
+    "pylint>=4.0.5",
+    "ruff>=0.15.4",
+]
