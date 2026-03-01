@@ -18,7 +18,7 @@ Missing values are filled with 0
 from pathlib import Path
 import time
 import pandas as pd
-from src.utils.logger import setup_logger
+from utils.logger import setup_logger
 
 # ----
 # Constants

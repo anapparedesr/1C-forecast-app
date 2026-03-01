@@ -1,15 +1,16 @@
 """
 train.py
 -----
-Module for training a Random Forest model for sales forecasting using the prepared dataset.
+Module for training a Random Forest model for sales forecasting.
 Evaluates the model on a validation set and saves the trained model for future use.
 
 Main steps:
     1. Load the prepared dataset (grid_model.csv).
     2. Split the data into training and validation sets based on date_block_num.
-    3. Train a Random Forest regressor using lag features as predictors.
-    4. Evaluate the model using RMSE on the validation set.
-    5. Save the trained model to the artifacts directory.
+    3. Optimize hyperparameters using RandomizedSearchCV.
+    4. Train a Random Forest regressor with the best hyperparameters.
+    5. Evaluate the model using RMSE on the validation set.
+    6. Save the trained model to the artifacts directory.
 """
 
 # -----
@@ -22,9 +23,9 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import RandomizedSearchCV
 
-from src.utils.logger import setup_logger
-
+from utils.logger import setup_logger
 
 # -----
 # Constants
@@ -42,7 +43,19 @@ RANDOM_SEED = 10
 N_ESTIMATORS = 100
 MAX_DEPTH = 10
 
+# Hyperparameter search space for RandomizedSearchCV
+PARAM_DISTRIBUTIONS = {
+    "n_estimators": [50, 100, 200, 300],
+    "max_depth": [5, 8, 10, 12, 15, None],
+    "min_samples_split": [2, 5, 10],
+    "min_samples_leaf": [1, 2, 4],
+    "max_features": ["sqrt", "log2"],
+}
+N_ITER_SEARCH = 20
+CV_FOLDS = 3
+
 logger = setup_logger("train")
+
 
 # -----
 # Loading data function
@@ -64,6 +77,7 @@ def load_prepared_data(prep_dir: Path) -> pd.DataFrame:
     grid = pd.read_csv(prep_dir / GRID_MODEL_PREP)
     logger.info("Prepared dataset loaded: %s records", f"{len(grid):,}")
     return grid
+
 
 # -----
 # Splitting data function
@@ -99,6 +113,7 @@ def split_data(
     )
     return train_grid, val_grid
 
+
 def features_and_target(
     grid: pd.DataFrame,
     features: list[str] | None = None,
@@ -128,14 +143,19 @@ def features_and_target(
     target = grid[TARGET_COL].clip(0, clip)
     return features_matrix, target
 
+
 # -----
-# Training and evaluation function
-def train_model(
+# Hyperparameter optimization function
+def optimize_hyperparameters(
     features_train: pd.DataFrame,
     target_train: pd.Series,
-) -> RandomForestRegressor:
+    param_distributions: dict | None = None,
+    n_iter: int = N_ITER_SEARCH,
+    cv: int = CV_FOLDS,
+    random_seed: int = RANDOM_SEED,
+) -> dict:
     """
-    Train a Random Forest regressor.
+    Search for the best hyperparameters using RandomizedSearchCV.
 
     Parameters:
     ---
@@ -143,6 +163,70 @@ def train_model(
         Training features (lag columns).
     target_train: pd.Series
         Training target variable.
+    param_distributions: dict | None
+        Hyperparameter search space (default: PARAM_DISTRIBUTIONS).
+    n_iter: int
+        Number of parameter combinations to try (default: 20).
+    cv: int
+        Number of cross-validation folds (default: 3).
+    random_seed: int
+        Random seed for reproducibility.
+
+    Returns:
+    ---
+    dict
+        Best hyperparameters found by the search.
+    """
+    if param_distributions is None:
+        param_distributions = PARAM_DISTRIBUTIONS
+
+    logger.info(
+        "Starting RandomizedSearchCV — %s iterations, %s-fold CV...", n_iter, cv
+    )
+    base_model = RandomForestRegressor(random_state=random_seed, n_jobs=-1)
+    search = RandomizedSearchCV(
+        estimator=base_model,
+        param_distributions=param_distributions,
+        n_iter=n_iter,
+        cv=cv,
+        scoring="neg_root_mean_squared_error",
+        random_state=random_seed,
+        n_jobs=-1,
+        verbose=0,
+    )
+    search.fit(features_train, target_train)
+
+    best_params = search.best_params_
+    best_cv_rmse = -search.best_score_
+    logger.info("Best hyperparameters found: %s", best_params)
+    logger.info("Best CV RMSE: %.4f", best_cv_rmse)
+    return best_params
+
+
+# -----
+# Training and evaluation functions
+def train_model(
+    features_train: pd.DataFrame,
+    target_train: pd.Series,
+    n_estimators: int = N_ESTIMATORS,
+    max_depth: int = MAX_DEPTH,
+    random_seed: int = RANDOM_SEED,
+) -> RandomForestRegressor:
+    """
+    Train a Random Forest regressor with the given hyperparameters.
+
+    Parameters:
+    ---
+    features_train: pd.DataFrame
+        Training features (lag columns).
+    target_train: pd.Series
+        Training target variable.
+    n_estimators: int
+        Number of trees in the Random Forest.
+    max_depth: int
+        Maximum depth of each tree.
+    random_seed: int
+        Random seed for reproducibility.
 
     Returns:
     ---
@@ -151,19 +235,20 @@ def train_model(
     """
     logger.info(
         "Training Random Forest — n_estimators=%s, max_depth=%s, random_state=%s",
-        N_ESTIMATORS,
-        MAX_DEPTH,
-        RANDOM_SEED,
+        n_estimators,
+        max_depth,
+        random_seed,
     )
     model = RandomForestRegressor(
-        n_estimators=N_ESTIMATORS,
-        max_depth=MAX_DEPTH,
-        random_state=RANDOM_SEED,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_seed,
         n_jobs=-1,
     )
     model.fit(features_train, target_train)
     logger.info("Model training complete")
     return model
+
 
 def calculate_rmse(
     model: RandomForestRegressor,
@@ -217,15 +302,23 @@ def save_model(model: RandomForestRegressor, artifacts_dir: Path) -> Path:
     logger.info("Model saved: %s", MODEL_PATH)
     return model_path
 
+
 # -----
-# Main function to execute the training process
-def train_and_evaluate(prep_dir: Path, artifacts_dir: Path) -> float:
+# Main function
+def train_and_evaluate(
+    prep_dir: Path,
+    artifacts_dir: Path,
+    n_estimators: int = N_ESTIMATORS,
+    max_depth: int = MAX_DEPTH,
+    random_seed: int = RANDOM_SEED,
+    use_random_search: bool = True,
+) -> float:
     """
     Execute the full training and evaluation pipeline:
     1. Load the prepared dataset.
     2. Split into training and validation sets.
-    3. Extract features and target variable.
-    4. Train the Random Forest model.
+    3. Optionally optimize hyperparameters with RandomizedSearchCV.
+    4. Train the Random Forest model with best hyperparameters.
     5. Calculate RMSE on the validation set.
     6. Save the trained model.
 
@@ -235,6 +328,14 @@ def train_and_evaluate(prep_dir: Path, artifacts_dir: Path) -> float:
         Directory containing the prepared dataset (grid_model.csv).
     artifacts_dir: Path
         Directory where the trained model will be saved.
+    n_estimators: int
+        Number of trees (used if use_random_search=False).
+    max_depth: int
+        Max tree depth (used if use_random_search=False).
+    random_seed: int
+        Random seed for reproducibility.
+    use_random_search: bool
+        Whether to run RandomizedSearchCV before training (default: True).
 
     Returns:
     ---
@@ -253,7 +354,14 @@ def train_and_evaluate(prep_dir: Path, artifacts_dir: Path) -> float:
         features_train, target_train = features_and_target(train_grid)
         features_val, target_val = features_and_target(val_grid)
 
-        model = train_model(features_train, target_train)
+        if use_random_search:
+            best_params = optimize_hyperparameters(
+                features_train, target_train, random_seed=random_seed
+            )
+            n_estimators = best_params.get("n_estimators", n_estimators)
+            max_depth = best_params.get("max_depth", max_depth)
+
+        model = train_model(features_train, target_train, n_estimators, max_depth, random_seed)
         rmse = calculate_rmse(model, features_val, target_val)
 
         save_model(model, artifacts_dir)
@@ -269,6 +377,7 @@ def train_and_evaluate(prep_dir: Path, artifacts_dir: Path) -> float:
     logger.info("Training pipeline completed in %.2f seconds", duration)
     logger.info("=" * 50)
     return rmse
+
 
 # -----
 # Entry point
