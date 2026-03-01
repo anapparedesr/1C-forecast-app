@@ -65,6 +65,12 @@ def parse_args() -> argparse.Namespace:
         default=10,
         help="Random seed for reproducibility (default: 10)",
     )
+    parser.add_argument(
+        "--no-random-search",
+        action="store_true",
+        default=False,
+        help="Disable RandomizedSearchCV and use default hyperparameters",
+    )
     return parser.parse_args()
 
 
@@ -73,9 +79,10 @@ def parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = parse_args()
     train_and_evaluate(
-        prep_dir=args.prep_dir,
-        artifacts_dir=args.artifacts_dir,
-        n_estimators=args.n_estimators,
-        max_depth=args.max_depth,
-        random_seed=args.random_seed,
-    )
+    prep_dir=args.prep_dir,
+    artifacts_dir=args.artifacts_dir,
+    n_estimators=args.n_estimators,
+    max_depth=args.max_depth,
+    random_seed=args.random_seed,
+    use_random_search=not args.no_random_search,
+)
