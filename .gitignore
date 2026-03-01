@@ -1,11 +1,21 @@
 # ─────────────────────────────────────────
 # Data
 # ─────────────────────────────────────────
-data/raw/
-data/prep/
+# Ignoramos el CONTENIDO de las carpetas, pero no las carpetas en sí
+data/raw/*
+!data/raw/.gitkeep
+
+data/prep/*
+!data/prep/.gitkeep
+
+data/inference/*
+!data/inference/.gitkeep
+
+data/predictions/*
+!data/predictions/.gitkeep
+
+# Seguimos ignorando todos los CSV en cualquier lugar por seguridad
 *.csv
-data/inference/
-data/predictions/
 # ─────────────────────────────────────────
 # Artifacts (modelos entrenados y logs)
 # ─────────────────────────────────────────
