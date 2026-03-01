@@ -131,8 +131,11 @@ def features_and_target(
 # -----
 # Training and evaluation function
 def train_model(
-    features_train: pd.DataFrame,
-    target_train: pd.Series,
+    features_train,
+    target_train,
+    n_estimators: int = N_ESTIMATORS,
+    max_depth: int = MAX_DEPTH,
+    random_seed: int = RANDOM_SEED,
 ) -> RandomForestRegressor:
     """
     Train a Random Forest regressor.
@@ -143,6 +146,12 @@ def train_model(
         Training features (lag columns).
     target_train: pd.Series
         Training target variable.
+    n_estimators: int
+        Number of trees in the Random Forest.
+    max_depth: int
+        Maximum depth of each tree.
+    random_seed: int
+        Random seed for reproducibility.
 
     Returns:
     ---
@@ -151,14 +160,14 @@ def train_model(
     """
     logger.info(
         "Training Random Forest — n_estimators=%s, max_depth=%s, random_state=%s",
-        N_ESTIMATORS,
-        MAX_DEPTH,
-        RANDOM_SEED,
+        n_estimators,  
+        max_depth,    
+        random_seed,   
     )
     model = RandomForestRegressor(
-        n_estimators=N_ESTIMATORS,
-        max_depth=MAX_DEPTH,
-        random_state=RANDOM_SEED,
+        n_estimators=n_estimators,  
+        max_depth=max_depth,
+        random_state=random_seed,
         n_jobs=-1,
     )
     model.fit(features_train, target_train)
@@ -219,7 +228,13 @@ def save_model(model: RandomForestRegressor, artifacts_dir: Path) -> Path:
 
 # -----
 # Main function to execute the training process
-def train_and_evaluate(prep_dir: Path, artifacts_dir: Path) -> float:
+def train_and_evaluate(
+    prep_dir: Path, 
+    artifacts_dir: Path,
+    n_estimators: int = N_ESTIMATORS,
+    max_depth: int = MAX_DEPTH,
+    random_seed: int = RANDOM_SEED,
+    ) -> float:
     """
     Execute the full training and evaluation pipeline:
     1. Load the prepared dataset.
@@ -253,7 +268,7 @@ def train_and_evaluate(prep_dir: Path, artifacts_dir: Path) -> float:
         features_train, target_train = features_and_target(train_grid)
         features_val, target_val = features_and_target(val_grid)
 
-        model = train_model(features_train, target_train)
+        model = train_model(features_train, target_train, n_estimators, max_depth, random_seed)
         rmse = calculate_rmse(model, features_val, target_val)
 
         save_model(model, artifacts_dir)
