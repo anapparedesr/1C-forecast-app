@@ -1,146 +1,213 @@
-# Proyecto para predecir ventas mensuales 
+# Modelo ML-predsales
 
-Este repositorio contiene un pipeline de machine learning para la predicción de ventas mensuales a nivel tienda-item, a partir de datos históricos de ventas. 
-El objetivo principal del repositorio fue refactorizar un notebook que iba desde el análisis exploratorio hasta la creación de un modelo para predecir la demanda mensual y convertirlo en un repositorio estructurado con scripts que puedan ejecutarse de forma automática. 
+Repositorio de un modelo de Machine Learning para predecir ventas mensuales por tienda y producto, desarrollado como parte del MGE.
 
+## Descripción del Proyecto
 
-## Estructura del repositorio 
-```text
+El objetivo es predecir la cantidad de unidades vendidas (`item_cnt_month`) para cada combinación de tienda y producto en el mes 34, usando como features los lags históricos de ventas (1, 3, 6 y 12 meses).
+
+El modelo base es un **Random Forest Regressor** entrenado sobre un grid completo de combinaciones tienda-producto-mes, con optimización de hiperparámetros mediante **RandomizedSearchCV**.
+
+**Dataset:** [Predict Future Sales — Kaggle](https://www.kaggle.com/competitions/competitive-data-science-predict-future-sales/data)
+
+---
+
+## Estructura del Repositorio
+
+```
 ModeloML-predsales/
 ├── data/
-│   ├── raw/                # Datos originales
-│   ├── prep/               # Datos preparados para modelado
-│   ├── inference/          # Datos listos para inferencia
-│   └── predictions/        # Predicciones creadas
-│
-├── artifacts/              # Modelos entrenados y otros objetos
-│
-├── notebooks/              # Notebooks (todo el proceso en los scripts)
-│   └── Tarea1_FINAL.ipynb
-│
-├── src/                    # Scripts del pipeline
-│   ├── __init__.py
-│   ├── prep.py           
-|   ├── prep_inference.py
-│   ├── train.py
-│   └── inference.py
-│
-├── .gitignore
-└── README.md
+│   ├── raw/                  # Datos crudos (no versionados)
+│   ├── prep/                 # Datos preparados para entrenamiento
+│   ├── inference/            # Datos preparados para inferencia
+│   └── predictions/          # Predicciones generadas
+├── artifacts/                # Modelos entrenados (.pkl)
+│   └── logs/                 # Logs de ejecución
+├── notebook/                 # Notebooks exploratorios
+└── src/
+    ├── preprocessing/
+    │   ├── prep.py           # Preparación de datos de entrenamiento
+    │   ├── prep_inference.py # Preparación de datos de inferencia
+    │   ├── __main__.py       # Entry point con argparse
+    │   ├── Dockerfile
+    │   ├── requirements.txt
+    │   ├── utils/
+    │   │   ├── logger.py
+    │   │   ├── metrics.py
+    │   │   └── data_validation.py
+    │   └── test/
+    │       └── test_prep.py
+    ├── training/
+    │   ├── train.py          # Entrenamiento con RandomizedSearchCV
+    │   ├── __main__.py       # Entry point con argparse
+    │   ├── Dockerfile
+    │   ├── requirements.txt
+    │   ├── utils/
+    │   └── test/
+    │       └── test_train.py
+    └── inference/
+        ├── inference.py      # Generación de predicciones
+        ├── __main__.py       # Entry point con argparse
+        ├── Dockerfile
+        ├── requirements.txt
+        ├── utils/
+        └── test/
+            └── test_inference.py
 ```
 
-## Datos originales 
-
-Para replicar los resultados obtenidos, se sugiera que se descarguen los datos del siguiente [link](https://www.kaggle.com/competitions/competitive-data-science-predict-future-sales). 
-Se necesita que se descarguen los datos de (https://www.kaggle.com/competitions/competitive-data-science-predict-future-sales) 
-
-Dentro del link se necesitan las siguientes bases de datos: 
-- sales_train.csv
-- test.csv
-- items.csv
-
-## Descripción de los scripts 
-
-### prep.py
-
-**Entrada**
-* data/raw/sales_train.csv
-* data/raw/items.csv
-
-**Salida**
-* data/prep/grid_model.csv
-
-**Funcionalidad**
-* Limpieza básica de datos
-* Agregación mensual de vental
-* Construcción del grid completo (tienda-item-mes)
-* Creación de variables de rezago (`lag_1`, `lag_3`, `lag_6`, `lag_12`)
-  
 ---
-### prep_inference.py
 
-Se recomienda utilizar este script si los datos para predecir no tienen las mismas columnas que la base: grid_model.csv 
+## Git Workflow
 
-**Entrada**
-* data/raw/test.csv
+Este repositorio sigue una estrategia de branching profesional para MLOps:
 
-**Salida**
-* data/inference/test_with_lags.csv
+- **`main`** — rama de producción, solo recibe cambios via PR desde `development`
+- **`development`** — rama de integración, recibe cambios via PR desde feature branches
+- **`feature/*`** — una rama por cada entregable, con commits usando [Conventional Commits](https://www.conventionalcommits.org/)
 
-**Funcionalidad**
-* Crea rezagos a los datos para la predicción 
-* Prepara los datos para la inferencia
-   
+Flujo de trabajo:
+```
+feature/preprocessing → development → main
+feature/training      → development → main
+feature/inference     → development → main
+feature/tests         → development → main
+feature/docker        → development → main
+feature/model-improvement → development → main
+feature/readme        → development → main
+```
+
 ---
-### train.py
 
-**Entrada**
-* data/prep/grid_model.csv
+## Instalación y Setup
 
-**Salida**
-* artifacts/random_forest_lags.pkl
+### Requisitos
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv)
 
-**Funcionalidad**
-* Split temporal (train / validation)
-* Entrenamiento de un RandomForestRegressor
-* Evaluación con RMSE
-* Persistencia del modelo entrenado 
- ---
- 
-### inference.py
+### Pasos
 
-**Entrada**
-* data/inference/test_with_lags.csv
-* artifacts/random_forest_lags.pkl
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/anapparedesr/ModeloML-predsales.git
+cd ModeloML-predsales
 
-**Salida**
-* data/predictions/predictions.csv
+# 2. Instalar dependencias
+uv sync
 
-**Funcionalidad**
-* Carga de datos para inferencia en batch
-* Generación de predicciones con el modelo entrenado
-* Guardado de resultados
-
-### Ejecución de scripts 
-Todos los scripts se ejecutan desde el root del repositorio, usando `uv`
-
-```
-uv run python src/prep.py
-uv run python src/prep_inference.py
-uv run python src/train.py
-uv run python src/inference.py
+# 3. Descargar los datos desde Kaggle y colocarlos en data/raw/
+# https://www.kaggle.com/competitions/competitive-data-science-predict-future-sales/data
+# Archivos necesarios:
+#   data/raw/sales_train.csv
+#   data/raw/items.csv
+#   data/raw/test.csv
 ```
 
-Si se sigue correctamente los scripts y con los datos indicados, se obtendrá la siguiente organización
-## Estructura del repositorio al correr los scripts y descargarlos datos 
+---
 
-```text
-ModeloML-predsales/
-├── data/
-│   ├── raw/                # Datos originales
-│   │   ├── sales_train.csv
-│   │   ├── items.csv
-│   │   └── test.csv
-│   ├── prep/               # Datos preparados para modelado
-│   │   └── grid_model.csv
-│   ├── inference/          # Datos listos para inferencia
-│   │   └── test_with_lags.csv
-│   └── predictions/        # Predicciones en batch
-│       └── predictions.csv
-│
-├── artifacts/              # Modelos entrenados y otros objetos
-│   └── random_forest_lags.pkl
-│
-├── notebooks/              # Notebooks exploratorios
-│   └── Tarea1_FINAL.ipynb
-│
-├── src/                    # Scripts del pipeline
-│   ├── __init__.py
-│   ├── prep.py
-│   ├── train.py
-│   └── inference.py
-│
-├── .gitignore
-└── README.md
+## Ejecución del Pipeline Completo
+
+### Con Python directamente
+
+```bash
+# Paso 1 — Preprocessing
+uv run python -m src.preprocessing \
+    --raw-dir data/raw \
+    --prep-dir data/prep \
+    --inference-dir data/inference
+
+# Paso 2 — Training
+uv run python -m src.training \
+    --prep-dir data/prep \
+    --artifacts-dir artifacts
+
+# Paso 3 — Inference
+uv run python -m src.inference \
+    --inference-dir data/inference \
+    --artifacts-dir artifacts \
+    --predictions-dir data/predictions
 ```
 
+### Con Docker
+
+```bash
+# Construir imágenes
+docker build -t ml-preprocessing:latest ./src/preprocessing/
+docker build -t ml-training:latest ./src/training/
+docker build -t ml-inference:latest ./src/inference/
+```
+
+---
+
+## Ejecución de Contenedores
+
+Cada contenedor acepta argumentos de entrada, salida e hiperparámetros por CLI:
+
+```bash
+# Preprocessing
+docker run \
+    -v $(pwd)/data:/app/data \
+    ml-preprocessing:latest \
+    --raw-dir data/raw \
+    --prep-dir data/prep \
+    --inference-dir data/inference
+
+# Training (con hiperparámetros personalizados)
+docker run \
+    -v $(pwd)/data:/app/data \
+    -v $(pwd)/artifacts:/app/artifacts \
+    ml-training:latest \
+    --prep-dir data/prep \
+    --artifacts-dir artifacts \
+    --n-estimators 200 \
+    --max-depth 8
+
+# Inference
+docker run \
+    -v $(pwd)/data:/app/data \
+    -v $(pwd)/artifacts:/app/artifacts \
+    ml-inference:latest \
+    --inference-dir data/inference \
+    --artifacts-dir artifacts \
+    --predictions-dir data/predictions
+```
+
+---
+
+## Mejora del Modelo
+
+Se implementó **RandomizedSearchCV** para optimizar los hiperparámetros del Random Forest antes del entrenamiento final.
+
+**Espacio de búsqueda:**
+
+| Hiperparámetro | Valores explorados |
+|---|---|
+| `n_estimators` | 50, 100, 200, 300 |
+| `max_depth` | 5, 8, 10, 12, 15, None |
+| `min_samples_split` | 2, 5, 10 |
+| `min_samples_leaf` | 1, 2, 4 |
+| `max_features` | sqrt, log2 |
+
+**Configuración:** 20 iteraciones, 3-fold cross-validation, métrica: RMSE.
+
+El modelo con hiperparámetros optimizados se compara contra el baseline en el set de validación (mes 33). Los resultados se registran en los logs de ejecución en `artifacts/logs/`.
+
+---
+
+## Pruebas Unitarias
+
+El proyecto incluye 23 pruebas unitarias organizadas por step:
+
+```bash
+uv run pytest src/ -v
+```
+
+**Resultado esperado:**
+```
+23 passed in 5.23s
+```
+
+| Step | Archivo | Tests |
+|---|---|---|
+| Preprocessing | `src/preprocessing/test/test_prep.py` | 9 |
+| Training | `src/training/test/test_train.py` | 7 |
+| Inference | `src/inference/test/test_inference.py` | 7 |
