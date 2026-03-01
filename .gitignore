@@ -6,7 +6,10 @@ data/prep/
 *.csv
 data/inference/
 data/predictions/
-
+!data/raw/.gitkeep
+!data/prep/.gitkeep
+!data/inference/.gitkeep
+!data/predictions/.gitkeep
 # ─────────────────────────────────────────
 # Artifacts (modelos entrenados y logs)
 # ─────────────────────────────────────────
