@@ -18,4 +18,4 @@ COPY utils/ utils/
 COPY __main__.py .
 
 # Entry point
-ENTRYPOINT ["python", "-m", "inference"]
+ENTRYPOINT ["python", "__main__.py"]
