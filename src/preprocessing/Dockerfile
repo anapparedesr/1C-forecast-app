@@ -19,4 +19,4 @@ COPY utils/ utils/
 COPY __main__.py .
 
 # Entry point
-ENTRYPOINT ["python", "-m", "preprocessing"]
+ENTRYPOINT ["python", "__main__.py"]
