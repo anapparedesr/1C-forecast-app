@@ -204,11 +204,6 @@ uv run pytest src/ -v
 **Resultado esperado:**
 ```
 23 passed in 5.23s
-
-**Captura de pantalla**
-![pruebaspytest](https://github.com/user-attachments/assets/6e36c633-3e09-484c-920e-aef9a9fa887c)
-
-
 ```
 
 | Step | Archivo | Tests |
@@ -216,3 +211,6 @@ uv run pytest src/ -v
 | Preprocessing | `src/preprocessing/test/test_prep.py` | 9 |
 | Training | `src/training/test/test_train.py` | 7 |
 | Inference | `src/inference/test/test_inference.py` | 7 |
+
+**Captura de pantalla**
+![pruebaspytest](https://github.com/user-attachments/assets/6e36c633-3e09-484c-920e-aef9a9fa887c)
