@@ -204,6 +204,11 @@ uv run pytest src/ -v
 **Resultado esperado:**
 ```
 23 passed in 5.23s
+
+**Captura de pantalla**
+![pruebaspytest](https://github.com/user-attachments/assets/6e36c633-3e09-484c-920e-aef9a9fa887c)
+
+
 ```
 
 | Step | Archivo | Tests |
