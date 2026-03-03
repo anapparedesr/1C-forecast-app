@@ -27,6 +27,7 @@
 <img width="818" height="279" alt="trainingrunning" src="https://github.com/user-attachments/assets/6073f9c1-9162-4a88-ab5e-18abf10b30b1" />
 
 **Prueba de inference running**
+
 <img width="673" height="273" alt="inferencerunning" src="https://github.com/user-attachments/assets/fffed17e-1fed-4317-bb24-eeec787ff15c" />
 
 
