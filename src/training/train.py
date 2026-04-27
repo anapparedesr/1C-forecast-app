@@ -311,7 +311,7 @@ def train_and_evaluate(
     n_estimators: int = N_ESTIMATORS,
     max_depth: int = MAX_DEPTH,
     random_seed: int = RANDOM_SEED,
-    use_random_search: bool = True,
+    use_random_search: bool = False,
 ) -> float:
     """
     Execute the full training and evaluation pipeline:
