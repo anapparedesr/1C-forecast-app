@@ -1,0 +1,8 @@
+2026-04-26 15:59:44,076 - train - INFO - ==================================================
+2026-04-26 15:59:44,076 - train - INFO - Starting training pipeline (train.py)
+2026-04-26 15:59:44,076 - train - INFO - ==================================================
+2026-04-26 15:59:44,077 - train - INFO - Loading prepared dataset...
+2026-04-26 15:59:52,330 - train - INFO - Prepared dataset loaded: 9,330,156 records
+2026-04-26 15:59:55,339 - train - INFO - Train set: 8,906,058 records (months 0–32)
+2026-04-26 15:59:55,340 - train - INFO - Validation set: 424,098 records (month 33)
+2026-04-26 15:59:55,393 - train - INFO - Starting RandomizedSearchCV — 20 iterations, 3-fold CV...

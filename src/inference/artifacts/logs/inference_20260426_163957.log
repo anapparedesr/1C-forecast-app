@@ -1,0 +1,12 @@
+2026-04-26 16:39:57,161 - inference - INFO - ==================================================
+2026-04-26 16:39:57,161 - inference - INFO - Starting inference pipeline (inference.py)
+2026-04-26 16:39:57,161 - inference - INFO - ==================================================
+2026-04-26 16:39:57,162 - inference - INFO - Loading trained model...
+2026-04-26 16:39:58,999 - inference - INFO - Model loaded successfully: random_forest_lags.pkl
+2026-04-26 16:39:59,000 - inference - INFO - Loading inference data...
+2026-04-26 16:39:59,272 - inference - INFO - Inference data loaded: 214,200 records
+2026-04-26 16:39:59,273 - inference - INFO - Generating predictions...
+2026-04-26 16:39:59,610 - inference - INFO - Predictions generated: 214,200 records
+2026-04-26 16:40:00,360 - inference - INFO - Predictions saved: 214,200 records → submissions.csv
+2026-04-26 16:40:00,360 - inference - INFO - Inference pipeline completed in 3.20 seconds
+2026-04-26 16:40:00,361 - inference - INFO - ==================================================

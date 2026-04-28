@@ -1,0 +1,13 @@
+2026-04-26 16:34:30,133 - train - INFO - ==================================================
+2026-04-26 16:34:30,134 - train - INFO - Starting training pipeline (train.py)
+2026-04-26 16:34:30,134 - train - INFO - ==================================================
+2026-04-26 16:34:30,134 - train - INFO - Loading prepared dataset...
+2026-04-26 16:34:39,973 - train - INFO - Prepared dataset loaded: 9,330,156 records
+2026-04-26 16:34:43,537 - train - INFO - Train set: 8,906,058 records (months 0–32)
+2026-04-26 16:34:43,537 - train - INFO - Validation set: 424,098 records (month 33)
+2026-04-26 16:34:43,624 - train - INFO - Training Random Forest — n_estimators=100, max_depth=10, random_state=10
+2026-04-26 16:36:27,694 - train - INFO - Model training complete
+2026-04-26 16:36:28,027 - train - INFO - Validation RMSE (Random Forest): 0.7442
+2026-04-26 16:36:28,162 - train - INFO - Model saved: random_forest_lags.pkl
+2026-04-26 16:36:28,162 - train - INFO - Training pipeline completed in 118.03 seconds
+2026-04-26 16:36:28,162 - train - INFO - ==================================================
