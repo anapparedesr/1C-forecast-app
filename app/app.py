@@ -4,12 +4,30 @@ import plotly.graph_objects as go
 from pathlib import Path
 from sqlalchemy import create_engine
 import os
+import boto3
+import json
 
 # ── Conexión a RDS ─────────────────────────────────────────────────────────
-DB_URL = (
-    f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
-    f"@{os.environ['DB_HOST']}:5432/postgres"
-)
+def get_db_credentials():
+    # En local, usar variables de entorno
+    if os.environ.get("DB_PASSWORD"):
+        return {
+            "username": os.environ["DB_USER"],
+            "password": os.environ["DB_PASSWORD"],
+            "host": os.environ["DB_HOST"]
+        }
+    # En AWS, leer de Secrets Manager
+    client = boto3.client("secretsmanager", region_name="us-east-1")
+    secret = client.get_secret_value(SecretId="1c-forecast-db-credentials")
+    creds = json.loads(secret["SecretString"])
+    return {
+        "username": creds["username"],
+        "password": creds["password"],
+        "host": creds["host"]
+    }
+
+creds = get_db_credentials()
+DB_URL = f"postgresql://{creds['username']}:{creds['password']}@{creds['host']}:5432/postgres"
 
 @st.cache_resource
 def get_engine():
@@ -18,15 +36,9 @@ def get_engine():
 @st.cache_data
 def load_data():
     engine = get_engine()
-    df        = pd.read_sql("SELECT * FROM predictions", engine)
-    val_preds = pd.read_sql("SELECT * FROM validation", engine)
-    sales     = pd.read_csv(Path(__file__).parent.parent / "data/raw/sales_train.csv")
-    sales_monthly = (
-        sales.groupby(["shop_id", "item_id", "date_block_num"])["item_cnt_day"]
-        .sum()
-        .reset_index()
-        .rename(columns={"item_cnt_day": "item_cnt_month"})
-    )
+    df            = pd.read_sql("SELECT * FROM predictions", engine)
+    val_preds     = pd.read_sql("SELECT * FROM validation", engine)
+    sales_monthly = pd.read_sql("SELECT * FROM sales_monthly", engine)
     return df, val_preds, sales_monthly
 
 df, val_preds, sales_monthly = load_data()
@@ -41,6 +53,23 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "Feedback",
     "Evaluación",
 ])
+
+# Credenciales 
+def get_db_credentials():
+    # Si estamos en local, usar variables de entorno
+    if os.environ.get("DB_PASSWORD"):
+        return {
+            "username": os.environ["DB_USER"],
+            "password": os.environ["DB_PASSWORD"],
+            "host": os.environ["DB_HOST"]
+        }
+    # En AWS, leer de Secrets Manager
+    client = boto3.client("secretsmanager", region_name="us-east-1")
+    secret = client.get_secret_value(SecretId="1c-forecast-db-credentials")
+    return json.loads(secret["SecretString"])
+
+creds = get_db_credentials()
+DB_URL = f"postgresql://{creds['username']}:{creds['password']}@{creds['host']}:5432/postgres"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — Pronósticos
