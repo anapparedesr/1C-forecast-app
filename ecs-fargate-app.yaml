@@ -58,7 +58,7 @@ Parameters:
 
   Memory:
     Type: String
-    Default: '512'
+    Default: '1024'
     AllowedValues: ['512', '1024', '2048', '4096', '8192']
     Description: Memory in MiB for the Fargate task.
 
@@ -277,6 +277,8 @@ Resources:
           Environment:
             - Name: AWS_DEFAULT_REGION
               Value: !Ref AWS::Region
+            - Name: SECRET_NAME
+              Value: 1c-forecast-db-credentials
           LogConfiguration:
             LogDriver: awslogs
             Options:

@@ -1,5 +1,8 @@
 FROM python:3.12-slim
 
+# Por el problema con un checker de seguridad
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Instalar dependencias

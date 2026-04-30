@@ -17,8 +17,9 @@ def get_db_credentials():
             "host": os.environ["DB_HOST"]
         }
     # En AWS, leer de Secrets Manager
+    secret_name = os.environ.get("SECRET_NAME", "1c-forecast-db-credentials")
     client = boto3.client("secretsmanager", region_name="us-east-1")
-    secret = client.get_secret_value(SecretId="1c-forecast-db-credentials")
+    secret = client.get_secret_value(SecretId=secret_name)
     creds = json.loads(secret["SecretString"])
     return {
         "username": creds["username"],
