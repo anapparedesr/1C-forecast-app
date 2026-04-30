@@ -1,11 +1,13 @@
 import streamlit as st
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import os
 import boto3
 import json
+
 
 # ── Conexión a RDS ─────────────────────────────────────────────────────────
 def get_db_credentials():
@@ -40,19 +42,23 @@ def load_data():
     df            = pd.read_sql("SELECT * FROM predictions", engine)
     val_preds     = pd.read_sql("SELECT * FROM validation", engine)
     sales_monthly = pd.read_sql("SELECT * FROM sales_monthly", engine)
-    return df, val_preds, sales_monthly
+    shops         = pd.read_sql("SELECT * FROM shops", engine)
+    items         = pd.read_sql("SELECT * FROM items", engine)
+    categories    = pd.read_sql("SELECT * FROM item_categories", engine)
+    return df, val_preds, sales_monthly, shops, items, categories
 
-df, val_preds, sales_monthly = load_data()
+df, val_preds, sales_monthly, shops, items, categories = load_data()
 
 # ── Configuración ──────────────────────────────────────────────────────────
 st.set_page_config(page_title="1C Company — Pronóstico de Ventas", layout="wide")
 st.title("Pronóstico de Ventas — 1C Company")
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Pronósticos",
     "Batch Export",
     "Feedback",
     "Evaluación",
+    "Catálogos",
 ])
 
 # Credenciales 
@@ -213,6 +219,20 @@ with tab3:
         else:
             st.warning("Por favor completa tu nombre y el comentario antes de registrar.")
 
+    st.divider()
+    st.subheader("Productos con problemas reportados")
+
+    engine = get_engine()
+    df_feedback = pd.read_sql("SELECT * FROM feedback ORDER BY created_at DESC", engine)
+
+    if len(df_feedback) > 0:
+        st.dataframe(
+            df_feedback[["shop_id", "item_id", "username", "comment", "created_at"]].reset_index(drop=True),
+            use_container_width=True
+        )
+    else:
+        st.info("No hay feedback registrado aún.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — Evaluación del modelo
 # ══════════════════════════════════════════════════════════════════════════════
@@ -260,3 +280,62 @@ with tab4:
         df_eval_summary[["shop_id", "item_id", "item_cnt_actual", "item_cnt_pred", "error_absoluto"]].reset_index(drop=True),
         use_container_width=True
     )
+
+    st.divider()
+
+    # ── RMSE por categoría ──
+    st.subheader("RMSE por categoría — Tienda completa")
+
+    df_eval_cat = df_eval.merge(
+    df[["item_id", "item_category_id", "item_category_name"]].drop_duplicates(),
+    on="item_id",
+    how="left"
+)
+
+    rmse_by_cat = (
+        df_eval_cat.groupby(["item_category_name", "item_category_id"])
+        .apply(lambda x: np.sqrt(((x["item_cnt_actual"] - x["item_cnt_pred"]) ** 2).mean()))
+        .reset_index()
+        .rename(columns={0: "rmse"})
+        .sort_values("rmse", ascending=False)
+        .reset_index(drop=True)
+    )
+    st.dataframe(rmse_by_cat, use_container_width=True)
+
+    st.divider()
+
+    # ── RMSE por tienda ──
+    st.subheader("RMSE por tienda — Todas las tiendas")
+
+    rmse_by_shop = (
+        val_preds.groupby("shop_id")
+        .apply(lambda x: np.sqrt(((x["item_cnt_actual"] - x["item_cnt_pred"]) ** 2).mean()))
+        .reset_index()
+        .rename(columns={0: "rmse"})
+        .sort_values("rmse", ascending=False)
+        .reset_index(drop=True)
+    )
+
+    st.dataframe(rmse_by_shop, use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 5 — Catálogos de referencia
+# ══════════════════════════════════════════════════════════════════════════════
+
+with tab5:
+    st.header("Catálogos de referencia")
+
+    cat1, cat2, cat3 = st.tabs(["Tiendas", "Productos", "Categorías"])
+
+    with cat1:
+        st.subheader("Tiendas")
+        st.dataframe(shops.sort_values("shop_id").reset_index(drop=True), use_container_width=True)
+
+    with cat2:
+        st.subheader("Productos")
+        productos = items.merge(categories, on="item_category_id", how="left")
+        st.dataframe(items[["item_id", "item_name"]].sort_values("item_id").reset_index(drop=True), use_container_width=True)
+
+    with cat3:
+        st.subheader("Categorías")
+        st.dataframe(categories.sort_values("item_category_id").reset_index(drop=True), use_container_width=True)
