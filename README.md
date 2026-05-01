@@ -8,7 +8,8 @@ Permite a los equipos de planeación, finanzas y operaciones consultar prediccio
 
 ## Arquitectura de la solución
 
-![Arquitectura](docs/Diagrama.png)
+<img width="785" height="455" alt="Diagrama sin título drawio" src="https://github.com/user-attachments/assets/d62d4e4b-49cd-4224-bbc5-795aa2a44b74" />
+
 
 El sistema se divide en dos capas:
 
@@ -20,7 +21,8 @@ El sistema se divide en dos capas:
 
 ## Modelo de datos
 
-![ERD](docs/erd.png)
+<img width="747" height="456" alt="ERD-ExamenParcial-APPR drawio" src="https://github.com/user-attachments/assets/e7e8f05b-b6c9-48f2-95d5-91edcd0595c7" />
+
 
 La base de datos RDS PostgreSQL contiene 7 tablas:
 
