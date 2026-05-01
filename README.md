@@ -1,216 +1,142 @@
-# Modelo ML-predsales
+# 1C Company - Producto de Datos para el pronóstico de las ventas 
 
-Repositorio de un modelo de Machine Learning para predecir ventas mensuales por tienda y producto, desarrollado como parte del MGE.
+Repositorio de la aplicación web de pronóstico de ventas desarrollada para 1C Company. 
+Permite a los equipos de planeación, finanzas y operaciones consultar predicciones de ventas mensuales por tienda, categoría y producto, sin necesidad de acceder a AWS o ejecutar código.
 
-## Descripción del Proyecto
 
-El objetivo es predecir la cantidad de unidades vendidas (`item_cnt_month`) para cada combinación de tienda y producto en el mes 34, usando como features los lags históricos de ventas (1, 3, 6 y 12 meses).
+**App con URL pública:** [http://forecast-alb-1188022330.us-east-1.elb.amazonaws.com](http://forecast-alb-1188022330.us-east-1.elb.amazonaws.com)
 
-El modelo base es un **Random Forest Regressor** entrenado sobre un grid completo de combinaciones tienda-producto-mes, con optimización de hiperparámetros mediante **RandomizedSearchCV**.
+## Arquitectura de la solución
 
-**Dataset:** [Predict Future Sales — Kaggle](https://www.kaggle.com/competitions/competitive-data-science-predict-future-sales/data)
+![Arquitectura](docs/Diagrama.png)
 
----
+El sistema se divide en dos capas:
 
-## Estructura del Repositorio
+**Capa offline (local):** El pipeline de ML procesa los datos históricos de ventas, entrena un modelo Random Forest y genera pronósticos para el mes 34. Los resultados se cargan en RDS y S3 mediante scripts ETL.
 
-```
-ModeloML-predsales/
-├── data/
-│   ├── raw/                  # Datos crudos (no versionados)
-│   ├── prep/                 # Datos preparados para entrenamiento
-│   ├── inference/            # Datos preparados para inferencia
-│   └── predictions/          # Predicciones generadas
-├── artifacts/                # Modelos entrenados (.pkl)
-│   └── logs/                 # Logs de ejecución
-├── notebook/                 # Notebooks exploratorios
-└── src/
-    ├── preprocessing/
-    │   ├── prep.py           # Preparación de datos de entrenamiento
-    │   ├── prep_inference.py # Preparación de datos de inferencia
-    │   ├── __main__.py       # Entry point con argparse
-    │   ├── Dockerfile
-    │   ├── requirements.txt
-    │   ├── utils/
-    │   │   ├── logger.py
-    │   │   ├── metrics.py
-    │   │   └── data_validation.py
-    │   └── test/
-    │       └── test_prep.py
-    ├── training/
-    │   ├── train.py          # Entrenamiento con RandomizedSearchCV
-    │   ├── __main__.py       # Entry point con argparse
-    │   ├── Dockerfile
-    │   ├── requirements.txt
-    │   ├── utils/
-    │   └── test/
-    │       └── test_train.py
-    └── inference/
-        ├── inference.py      # Generación de predicciones
-        ├── __main__.py       # Entry point con argparse
-        ├── Dockerfile
-        ├── requirements.txt
-        ├── utils/
-        └── test/
-            └── test_inference.py
-```
+**Capa productiva (AWS):** Una aplicación Streamlit desplegada en ECS Fargate lee los pronósticos desde RDS PostgreSQL y los presenta al usuario final a través de una URL pública. La infraestructura se despliega con CloudFormation.
 
 ---
 
-## Git Workflow
+## Modelo de datos
 
-Este repositorio sigue una estrategia de branching profesional para MLOps:
+![ERD](docs/erd.png)
 
-- **`main`** — rama de producción, solo recibe cambios via PR desde `development`
-- **`development`** — rama de integración, recibe cambios via PR desde feature branches
-- **`feature/*`** — una rama por cada entregable, con commits usando [Conventional Commits](https://www.conventionalcommits.org/)
+La base de datos RDS PostgreSQL contiene 7 tablas:
 
-Flujo de trabajo:
-```
-feature/preprocessing → development → main
-feature/training      → development → main
-feature/inference     → development → main
-feature/tests         → development → main
-feature/docker        → development → main
-feature/model-improvement → development → main
-feature/readme        → development → main
-```
+| Tabla | Descripción |
+|---|---|
+| `predictions` | Pronósticos del mes 34 por tienda y producto |
+| `validation` | Predicciones del mes 33 vs. ground truth para evaluación |
+| `sales_monthly` | Histórico mensual de ventas para visualización |
+| `feedback` | Comentarios del negocio sobre predicciones problemáticas |
+| `shops` | Catálogo de tiendas |
+| `items` | Catálogo de productos |
+| `item_categories` | Catálogo de categorías |
 
 ---
 
-## Instalación y Setup
+## Servicios de AWS
 
-### Requisitos
-- Python 3.12+
-- [uv](https://github.com/astral-sh/uv)
+| Servicio | Uso |
+|---|---|
+| **Amazon S3** | Almacenamiento de datos crudos, modelo `.pkl` y predicciones CSV |
+| **AWS Glue** | Catálogo de metadata sobre los CSV de predicciones en S3 |
+| **Amazon Athena** | Queries ad-hoc sobre los datos en S3 para el equipo de BI |
+| **Amazon RDS** | Base de datos PostgreSQL con tablas operacionales de la app |
+| **AWS Secrets Manager** | Gestión segura de credenciales de RDS |
+| **Amazon ECR** | Registro de la imagen Docker del Streamlit |
+| **Amazon ECS Fargate** | Ejecución del contenedor de la app sin gestión de servidores |
+| **AWS CloudFormation** | Despliegue de infraestructura como código |
 
-### Pasos
+---
+
+## Vistas de la aplicación
+
+| Tab | Descripción |
+|---|---|
+| Pronósticos | Filtro por tienda, categoría y producto con histórico de ventas |
+| Batch Export | Descarga de pronósticos por tienda o catálogo completo |
+| Feedback | Registro de productos con predicciones problemáticas |
+| Evaluación | RMSE por categoría y tienda, predicción vs. ground truth |
+| Catálogos | Referencia de tiendas, productos y categorías |
+
+---
+
+## Cómo correr el pipeline local
 
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/anapparedesr/ModeloML-predsales.git
-cd ModeloML-predsales
+# 1. Clonar el repo
+git clone https://github.com/anapparedesr/1C-forecast-app.git
+cd 1C-forecast-app
 
 # 2. Instalar dependencias
 uv sync
 
-# 3. Descargar los datos desde Kaggle y colocarlos en data/raw/
-# https://www.kaggle.com/competitions/competitive-data-science-predict-future-sales/data
-# Archivos necesarios:
-#   data/raw/sales_train.csv
-#   data/raw/items.csv
-#   data/raw/test.csv
+# 3. Colocar los datos en data/raw/
+# Descargar desde: https://www.kaggle.com/competitions/competitive-data-science-predict-future-sales/data
+
+# 4. Correr el pipeline
+cd src/preprocessing && uv run python __main__.py --raw-dir ../../data/raw --prep-dir ../../data/prep --inference-dir ../../data/inference
+cd ../training && uv run python __main__.py --prep-dir ../../data/prep --artifacts-dir ../../artifacts --no-random-search
+cd ../inference && uv run python __main__.py --inference-dir ../../data/inference --artifacts-dir ../../artifacts --predictions-dir ../../data/predictions
+
+# 5. Correr la app localmente
+DB_USER=postgres DB_PASSWORD= DB_HOST= uv run streamlit run app/app.py
+```
+---
+
+
+## Estructura del Repositorio
+
+```
+1C-forescast-app/
+├── app/
+│   ├── app.py                # Aplicación streamlit
+│   ├── Dockerfile            # Imagen Docker
+│   ├── requirements.txt      # Dependencias que se utilizan
+├── data/
+│   ├── raw/                  # Datos crudos 
+│   ├── prep/                 # Datos preparados para entrenamiento
+│   ├── inference/            # Datos preparados para inferencia
+│   └── predictions/          # Predicciones generadas
+├── scripts/               
+│   └── setup_rds.py          # ETL: carga predictions y validations en RDS
+│   └── setup_rds_sales.py    # ETL: carga sales_monthly en RDS
+│   └── setup_rds_catalogs.py # ETL: carga catálogos en RDS
+├── docs/ 
+│   └── Diagrama.png          # Diagrama de flujo
+│   └── ERD.png               # Diagrama entidad-relación                
+└── src/
+│   └── preprocessing/        # Pipeline de preprocesamiento
+│   └── training/             # Pipeline de entrenamiento
+│   └── inference/            # Pipeline de inferencia
+└── ecs-fargate-app.yaml
+└── Reporte del POC.pdf
+└── README.md
 ```
 
 ---
 
-## Ejecución del Pipeline Completo
+## Costo operativo estimado
 
-### Con Python directamente
-
-```bash
-# Paso 1 — Preprocessing
-uv run python -m src.preprocessing \
-    --raw-dir data/raw \
-    --prep-dir data/prep \
-    --inference-dir data/inference
-
-# Paso 2 — Training
-uv run python -m src.training \
-    --prep-dir data/prep \
-    --artifacts-dir artifacts
-
-# Paso 3 — Inference
-uv run python -m src.inference \
-    --inference-dir data/inference \
-    --artifacts-dir artifacts \
-    --predictions-dir data/predictions
-```
-
-### Con Docker
-
-```bash
-# Construir imágenes
-docker build -t ml-preprocessing:latest ./src/preprocessing/
-docker build -t ml-training:latest ./src/training/
-docker build -t ml-inference:latest ./src/inference/
-```
-
----
-
-## Ejecución de Contenedores
-
-Cada contenedor acepta argumentos de entrada, salida e hiperparámetros por CLI:
-
-```bash
-# Preprocessing
-docker run \
-    -v $(pwd)/data:/app/data \
-    ml-preprocessing:latest \
-    --raw-dir data/raw \
-    --prep-dir data/prep \
-    --inference-dir data/inference
-
-# Training (con hiperparámetros personalizados)
-docker run \
-    -v $(pwd)/data:/app/data \
-    -v $(pwd)/artifacts:/app/artifacts \
-    ml-training:latest \
-    --prep-dir data/prep \
-    --artifacts-dir artifacts \
-    --n-estimators 200 \
-    --max-depth 8
-
-# Inference
-docker run \
-    -v $(pwd)/data:/app/data \
-    -v $(pwd)/artifacts:/app/artifacts \
-    ml-inference:latest \
-    --inference-dir data/inference \
-    --artifacts-dir artifacts \
-    --predictions-dir data/predictions
-```
-
----
-
-## Mejora del Modelo
-
-Se implementó **RandomizedSearchCV** para optimizar los hiperparámetros del Random Forest antes del entrenamiento final.
-
-**Espacio de búsqueda:**
-
-| Hiperparámetro | Valores explorados |
+| Recurso | Costo mensual aproximado |
 |---|---|
-| `n_estimators` | 50, 100, 200, 300 |
-| `max_depth` | 5, 8, 10, 12, 15, None |
-| `min_samples_split` | 2, 5, 10 |
-| `min_samples_leaf` | 1, 2, 4 |
-| `max_features` | sqrt, log2 |
-
-**Configuración:** 20 iteraciones, 3-fold cross-validation, métrica: RMSE.
-
-El modelo con hiperparámetros optimizados se compara contra el baseline en el set de validación (mes 33). Los resultados se registran en los logs de ejecución en `artifacts/logs/`.
+| RDS db.t3.micro | ~$12.40 |
+| ECS Fargate (0.25 vCPU, 1GB) | ~$7.20 |
+| Application Load Balancer | ~$5.76 |
+| S3, ECR, Secrets Manager | ~$1.00 |
+| **Total** | **~$26.36/mes** |
 
 ---
 
-## Pruebas Unitarias
+## Uso de herramientas de IA
 
-El proyecto incluye 23 pruebas unitarias organizadas por step:
+Sí se utilizó IA durante el proceso de creación del producto de datos, en específico se utilizó Claude.ai como herramienta de consulta para debuggear los problemas de código, resolución de problemas en el despliegue de servicios de AWS y en el cálculo de costos aproximados. 
 
-```bash
-uv run pytest src/ -v
-```
+---
 
-**Resultado esperado:**
-```
-23 passed in 5.23s
-```
+## Autora
 
-| Step | Archivo | Tests |
-|---|---|---|
-| Preprocessing | `src/preprocessing/test/test_prep.py` | 9 |
-| Training | `src/training/test/test_train.py` | 7 |
-| Inference | `src/inference/test/test_inference.py` | 7 |
+Ana P. Paredes — ITAM MGE 2026
 
-**Captura de pantalla**
-![pruebaspytest](https://github.com/user-attachments/assets/6e36c633-3e09-484c-920e-aef9a9fa887c)
